@@ -1,0 +1,21 @@
+{
+  // Terminal en CMD: con PowerShell, la activación de conda suele chocar con la política de ejecución de scripts
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+
+  // Activa el entorno seleccionado al abrir cada terminal nueva
+  "python-envs.terminal.autoActivationType": "command",
+
+  // El .env lo carga el propio código con python-dotenv; no se inyecta en la terminal
+  // para que los tokens no queden como variables de entorno de toda la sesión
+  "python.terminal.useEnvFile": false,
+
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "files.exclude": {
+    "**/__pycache__": true
+  },
+  "files.associations": {
+    ".env": "properties",
+    ".env.example": "properties"
+  }
+}

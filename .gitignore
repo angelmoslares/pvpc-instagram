@@ -1,0 +1,21 @@
+# Credenciales: NUNCA al repo
+.env
+*.env
+!.env.example
+
+# Python y entornos
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.conda/
+.pytest_cache/
+
+# Editores y sistema (se comparten solo los archivos útiles de .vscode)
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
