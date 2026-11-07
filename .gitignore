@@ -3,6 +3,9 @@
 *.env
 !.env.example
 
+# HTML temporal del render
+out/_*.html
+
 # Python y entornos
 __pycache__/
 *.py[cod]

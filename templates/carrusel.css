@@ -1,0 +1,104 @@
+/* Carrusel diario · Que la luz te acompañe
+   Design System: retro pixel art, cozy cyberpunk. Rejilla de 8 px, sin suavizado.
+   Fuentes locales (assets/fonts), nunca desde internet al renderizar. */
+
+@font-face { font-family: "Press Start 2P"; src: url("../assets/fonts/PressStart2P-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Silkscreen"; src: url("../assets/fonts/Silkscreen-Regular.ttf") format("truetype"); }
+@font-face { font-family: "VT323"; src: url("../assets/fonts/VT323-Regular.ttf") format("truetype"); }
+
+:root {
+  --fondo: #1b1530; --panel: #2a2145; --panel-alto: #3a2e5e; --linea: #6b5a9e; --sombra: #0f0b1d;
+  --texto: #f3e9d2; --texto-suave: #a898cf; --cian: #5ee6eb; --ambar: #ffb454; --magenta: #ff5fa2;
+  --sobre-acento: #1b1530;
+  --barato: var(--cian); --medio: var(--ambar); --caro: var(--magenta);
+  --display: "Press Start 2P", monospace; --label: "Silkscreen", monospace; --cifras: "VT323", monospace;
+  --m: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-font-smoothing: none; font-smooth: never; text-rendering: optimizeSpeed; }
+html, body { background: var(--fondo); color: var(--texto); }
+img { image-rendering: pixelated; display: block; }
+.u { font-family: var(--cifras); font-size: 1.5em; line-height: 1; letter-spacing: 0; }  /* €/kWh: Silkscreen lo pondría en mayúsculas */
+
+/* ---------- Foto ---------- */
+.slide { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: var(--fondo); }
+
+/* Cabecera */
+.cab { position: absolute; left: var(--m); right: var(--m); top: var(--m); display: flex; justify-content: space-between; align-items: flex-start; }
+.cab-kicker { font: 32px/40px var(--label); color: var(--cian); }
+.cab-fecha { font: 40px/48px var(--display); color: var(--texto); margin-top: 8px; }
+.cab-pag { font: 16px/24px var(--display); color: var(--texto-suave); padding-top: 8px; }
+
+/* Pie */
+.pie { position: absolute; left: var(--m); right: var(--m); bottom: var(--m); display: grid; gap: 16px; }
+.pie-nota { font: 16px/24px var(--label); letter-spacing: 1px; color: var(--texto-suave); }
+.pie-fila { display: flex; justify-content: space-between; align-items: center; height: 40px; }
+.handle { font: 16px/24px var(--label); letter-spacing: 1px; color: var(--texto-suave); }
+.desliza { display: flex; align-items: center; gap: 16px; font: 24px/32px var(--label); letter-spacing: 1px; color: var(--cian); }
+.desliza svg { display: block; }
+.desliza rect { fill: var(--cian); }
+.fin { font: 24px/32px var(--label); letter-spacing: 1px; color: var(--ambar); }
+
+/* Personaje: contorno exterior de 1 píxel de sprite en --linea para separarlo del fondo */
+.pj { filter: drop-shadow(var(--px) 0 0 var(--linea)) drop-shadow(calc(var(--px) * -1) 0 0 var(--linea))
+              drop-shadow(0 var(--px) 0 var(--linea)) drop-shadow(0 calc(var(--px) * -1) 0 var(--linea)); }
+
+/* ---------- 1 · Resumen ---------- */
+.res-cuerpo { position: absolute; left: var(--m); right: var(--m); top: 200px; height: 648px;
+              display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: center; }
+.fichas { display: grid; gap: 24px; min-width: 0; }
+.ficha { background: var(--panel); border: 4px solid var(--linea); box-shadow: 8px 8px 0 var(--sombra);
+         padding: 24px 32px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+         column-gap: 24px; row-gap: 8px; align-items: end; }
+.ficha-label { grid-column: 1 / -1; font: 24px/32px var(--label); letter-spacing: 1px; color: var(--texto-suave); }
+.ficha-cifra { font: 112px/96px var(--cifras); }
+.ficha-info { display: grid; gap: 8px; padding-bottom: 8px; }
+.ficha-unidad { font: 32px/32px var(--cifras); color: var(--texto-suave); }
+.ficha-rango { font: 40px/40px var(--cifras); color: var(--texto); }
+.ficha.barato { border-color: var(--cian); }  .ficha.barato .ficha-cifra { color: var(--cian); }
+.ficha.caro { border-color: var(--magenta); } .ficha.caro .ficha-cifra { color: var(--magenta); }
+
+/* Tira de barras */
+.tira { position: absolute; left: var(--m); right: var(--m); top: 880px; background: var(--panel);
+        border: 4px solid var(--linea); box-shadow: 8px 8px 0 var(--sombra); padding: 16px 24px 16px; }
+.tira-ley { display: flex; justify-content: space-between; align-items: center; height: 32px; margin-bottom: 16px; }
+.tira-media { display: flex; align-items: center; gap: 16px; font: 32px/32px var(--cifras); }
+.tira-media i { display: block; width: 40px; border-top: 4px dashed var(--texto); }
+.chips { display: flex; gap: 8px; }
+.chip { font: 16px/24px var(--label); letter-spacing: 1px; color: var(--sobre-acento); padding: 0 8px;
+        clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px),
+                           calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)); }
+.chip.barato { background: var(--cian); } .chip.medio { background: var(--ambar); } .chip.caro { background: var(--magenta); }
+.plot { position: relative; height: 200px; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 8px; align-items: end; }
+.col { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+.pista { position: absolute; left: 0; right: 0; bottom: 0; height: 176px; background: var(--panel-alto); }
+.barra { position: relative; box-shadow: inset 0 8px 0 rgba(255, 255, 255, .18); }
+.barra.barato { background: var(--cian); } .barra.medio { background: var(--ambar); } .barra.caro { background: var(--magenta); }
+.marca { position: absolute; left: 50%; width: 24px; height: 16px; transform: translateX(-50%);
+         clip-path: polygon(0 0, 100% 0, 100% 25%, 83% 25%, 83% 50%, 67% 50%, 67% 75%, 50% 75%, 50% 100%, 33% 75%, 33% 50%, 17% 50%, 17% 25%, 0 25%); }
+.marca.min { background: var(--cian); } .marca.max { background: var(--magenta); }
+.linea-media { position: absolute; left: 0; right: 0; height: 0; border-top: 4px dashed var(--texto); }
+.horas { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 8px; margin-top: 8px; }
+.horas span { font: 16px/24px var(--label); color: var(--texto-suave); text-align: center; letter-spacing: 0; }
+.horas span.fuerte { color: var(--texto); }
+
+/* ---------- 2 y 3 · Escenas ---------- */
+.bocadillo { position: absolute; left: var(--m); right: var(--m); top: 200px; background: var(--panel);
+             border: 4px solid var(--texto); box-shadow: 8px 8px 0 var(--sombra); padding: 24px 32px; display: grid; gap: 16px; }
+.boc-texto { font: 48px/48px var(--cifras); color: var(--texto); }
+.boc-texto b { font-weight: 400; }
+.boc-texto .barato { color: var(--cian); } .boc-texto .caro { color: var(--magenta); }
+.boc-filas { display: grid; gap: 8px; }
+.boc-fila { display: grid; grid-template-columns: 112px 1fr auto; align-items: center; gap: 16px; font: 40px/40px var(--cifras); }
+.boc-fila .chip { font-size: 16px; line-height: 32px; text-align: center; }
+.boc-fila .coste { font-size: 48px; }
+.boc-fila.barato .coste { color: var(--cian); } .boc-fila.caro .coste { color: var(--magenta); }
+/* Cola escalonada del bocadillo: apunta abajo a la izquierda; .der la refleja para el personaje de la derecha */
+.cola { position: absolute; top: calc(100% - 4px); display: block; }
+.cola-borde { fill: var(--texto); } .cola-relleno { fill: var(--panel); }
+.cola.izq { left: 232px; } .cola.der { right: 232px; transform: scaleX(-1); }
+
+.escena { position: absolute; left: var(--m); right: var(--m); bottom: 200px; height: 640px;
+          display: flex; justify-content: space-between; align-items: flex-end; }
+.suelo { position: absolute; left: 0; right: 0; bottom: 192px; height: 8px; background: var(--panel-alto); }

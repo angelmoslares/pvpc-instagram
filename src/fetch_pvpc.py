@@ -262,9 +262,9 @@ def _normalizar(crudo: pd.DataFrame, fecha: date, fuente: str) -> ResultadoPVPC:
 
     horario["hora_local"] = horario["hora_utc"].dt.tz_convert(TZ)
     horario["hora"] = horario["hora_local"].dt.hour
-    # Etiqueta legible; la hora repetida del día de 25 h se marca con ′ (02 y 02′)
+    # Etiqueta legible; la hora repetida del día de 25 h se marca con ' (02 y 02'), porque las fuentes pixel no tienen el signo ′
     repetida = horario.duplicated("hora", keep="first")
-    horario["etiqueta"] = horario["hora"].map("{:02d}".format) + repetida.map({True: "′", False: ""})
+    horario["etiqueta"] = horario["hora"].map("{:02d}".format) + repetida.map({True: "'", False: ""})
     horario["precio_eur_kwh"] = horario["precio_eur_kwh"].round(6)
     horario = horario[["hora_local", "hora_utc", "hora", "etiqueta", "precio_eur_kwh"]]
 
