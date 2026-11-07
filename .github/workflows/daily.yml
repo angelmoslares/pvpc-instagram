@@ -3,7 +3,7 @@
 # Tres disparos en UTC, todos después de las 20:15 de Madrid en invierno y en verano.
 # El primero que encuentra datos publica; los demás no hacen nada (state/published.json).
 #
-# Secrets necesarios: ESIOS_TOKEN, IG_TOKEN, IG_USER_ID.
+# Secrets necesarios: ESIOS_TOKEN, IG_TOKEN (token de página EAA…), IG_USER_ID (instagram_business_account).
 # Los disparos programados solo funcionan cuando este archivo está en la rama por defecto.
 
 name: Publicación diaria
@@ -49,9 +49,27 @@ jobs:
           cache: pip
 
       - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      # Chromium de Playwright en caché: la clave cambia solo si cambia la versión de Playwright.
+      - name: Versión de Playwright
+        id: pw
+        run: echo "version=$(python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+
+      - name: Caché de Chromium
+        id: cache-pw
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Instalar Chromium
         run: |
-          pip install -r requirements.txt
-          playwright install --with-deps chromium
+          if [ "${{ steps.cache-pw.outputs.cache-hit }}" = "true" ]; then
+            playwright install-deps chromium
+          else
+            playwright install --with-deps chromium
+          fi
 
       - name: Configurar git
         run: |
@@ -63,7 +81,7 @@ jobs:
           ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_API_VERSION: v26.0
+          IG_API_VERSION: v27.0
           GITHUB_BRANCH: ${{ github.ref_name }}
           MODO: ${{ inputs.modo }}
           FECHA: ${{ inputs.fecha }}
