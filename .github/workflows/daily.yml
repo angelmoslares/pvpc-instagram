@@ -1,0 +1,70 @@
+# Publica cada tarde el PVPC de D+1 en Instagram.
+#
+# Tres disparos en UTC, todos después de las 20:15 de Madrid en invierno y en verano.
+# El primero que encuentra datos publica; los demás no hacen nada (state/published.json).
+#
+# Secrets necesarios: ESIOS_TOKEN, IG_TOKEN, IG_USER_ID.
+# Los disparos programados solo funcionan cuando este archivo está en la rama por defecto.
+
+name: Publicación diaria
+
+on:
+  schedule:
+    - cron: "35 19 * * *"
+    - cron: "5 20 * * *"
+    - cron: "35 20 * * *"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "normal publica; prueba hace todo menos publicar; sin-publicar solo genera datos y fotos"
+        type: choice
+        options:
+          - prueba
+          - sin-publicar
+          - normal
+        default: prueba
+      fecha:
+        description: "YYYY-MM-DD (vacío = D+1 en Madrid)"
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+# Nunca dos ejecuciones a la vez, y sin cancelar la que ya está publicando.
+concurrency:
+  group: publicacion-diaria
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Configurar git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Ejecutar main.py
+        env:
+          ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_API_VERSION: v26.0
+          GITHUB_BRANCH: ${{ github.ref_name }}
+          MODO: ${{ inputs.modo }}
+          FECHA: ${{ inputs.fecha }}
+        run: bash tools/ejecutar_diario.sh
