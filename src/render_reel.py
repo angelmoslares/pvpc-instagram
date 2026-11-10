@@ -103,11 +103,15 @@ def navegador_playwright() -> str | None:
         bases.append(os.path.join(os.getenv("LOCALAPPDATA", ""), "ms-playwright"))
     else:
         bases.append(os.path.expanduser("~/.cache/ms-playwright"))
-    nombre = "chrome-headless-shell.exe" if os.name == "nt" else "chrome-headless-shell"
+    # El nombre cambia según la versión de Playwright: chrome-headless-shell (actual) o headless_shell.
+    nombres = ["chrome-headless-shell", "headless_shell"]
+    if os.name == "nt":
+        nombres = [n + ".exe" for n in nombres]
     for base in filter(None, bases):
-        hallados = sorted(glob.glob(os.path.join(base, "chromium_headless_shell-*", "*", nombre)))
-        if hallados:
-            return hallados[-1]
+        for nombre in nombres:
+            hallados = sorted(glob.glob(os.path.join(base, "chromium_headless_shell-*", "*", nombre)))
+            if hallados:
+                return hallados[-1]
     return None
 
 
@@ -117,6 +121,11 @@ def entorno_hf() -> dict:
         nav = navegador_playwright()
         if nav:
             env["HYPERFRAMES_BROWSER_PATH"] = nav
+        elif not getattr(entorno_hf, "_avisado", False):
+            entorno_hf._avisado = True
+            log.warning("No encuentro el chrome-headless-shell de Playwright: HyperFrames usará su propio "
+                        "Chrome y la fidelidad puede dar pequeñas diferencias de color. "
+                        "Solución: playwright install chromium")
     return env
 
 

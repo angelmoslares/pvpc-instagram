@@ -1,4 +1,4 @@
-# Publica cada tarde el PVPC de D+1 en Instagram.
+# Publica cada tarde el PVPC de D+1 en Instagram: primero el carrusel y después el reel.
 #
 # Tres disparos en UTC, todos después de las 20:15 de Madrid en invierno y en verano.
 # El primero que encuentra datos publica; los demás no hacen nada (state/published.json).
@@ -27,6 +27,13 @@ on:
         description: "YYYY-MM-DD (vacío = D+1 en Madrid)"
         type: string
         required: false
+      reel:
+        description: "si genera y publica también el reel (después del carrusel); no solo hace el carrusel"
+        type: choice
+        options:
+          - si
+          - "no"
+        default: si
 
 permissions:
   contents: write
@@ -39,7 +46,7 @@ concurrency:
 jobs:
   publicar:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -50,6 +57,22 @@ jobs:
 
       - name: Instalar dependencias
         run: pip install -r requirements.txt
+
+      # Reel: HyperFrames (Node, versiones fijas en package-lock.json) y FFmpeg con ffprobe.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Instalar HyperFrames y GSAP
+        run: npm ci --no-audit --no-fund
+
+      - name: FFmpeg
+        run: |
+          if ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -1
 
       # Chromium de Playwright en caché: la clave cambia solo si cambia la versión de Playwright.
       - name: Versión de Playwright
@@ -85,4 +108,7 @@ jobs:
           GITHUB_BRANCH: ${{ github.ref_name }}
           MODO: ${{ inputs.modo }}
           FECHA: ${{ inputs.fecha }}
-        run: bash tools/ejecutar_diario.sh
+          REEL: ${{ inputs.reel }}
+          HYPERFRAMES_NO_TELEMETRY: "1"
+          DO_NOT_TRACK: "1"
+        run: bash tools/ejecutar_diario.sh

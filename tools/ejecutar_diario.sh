@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ejecutar_diario.sh — Paso de GitHub Actions que llama a main.py.
 #
-# Lee MODO (normal | prueba | sin-publicar; vacío = normal) y FECHA (opcional).
+# Lee MODO (normal | prueba | sin-publicar; vacío = normal), FECHA (opcional) y REEL (si | no).
 # La salida 2 de main.py significa "pendiente": no es un fallo, los datos llegarán
 # para el siguiente disparo.
 #
@@ -19,6 +19,11 @@ esac
 
 if [ -n "${FECHA:-}" ]; then
   args+=(--fecha "$FECHA")
+fi
+
+# REEL=no hace solo el carrusel (vacío = sí, que es lo que llega en los disparos programados)
+if [ "${REEL:-si}" = "no" ]; then
+  args+=(--sin-reel)
 fi
 
 "${PYTHON:-python}" main.py "${args[@]}"
