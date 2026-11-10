@@ -21,6 +21,16 @@
     "media_id": "18110230160244081",
     "permalink": "https://www.instagram.com/p/Dfk4tjLCagS/",
     "publicado_utc": "2026-11-10T21:36:18+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18081027167449463",
+      "creado_utc": "2026-11-10T22:31:07+00:00",
+      "subido": true,
+      "gancho": "El miércoles la luz se dispara de 10 a 11 h. Evítalo.",
+      "media_id": "17941089372394165",
+      "permalink": "https://www.instagram.com/reel/Dfk_AfmgVHx/",
+      "publicado_utc": "2026-11-10T22:31:38+00:00",
+      "segundos": 28.0
+    }
   }
 }
