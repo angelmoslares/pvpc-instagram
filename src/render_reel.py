@@ -40,7 +40,7 @@ from PIL import Image, ImageChops
 
 from src import reel_ganchos, reel_guion
 from src.fetch_pvpc import manana_madrid
-from src.render import OUT_DIR, ROOT, TEMPLATES, contexto, html_carrusel, verificar
+from src.render import OUT_DIR, ROOT, TEMPLATES, contexto, verificar
 
 ANCHO, ALTO = 1080, 1920
 MAX_BYTES = 300 * 1024 * 1024
@@ -67,13 +67,8 @@ def html_reel(ctx: dict, ctx_gancho) -> str:
     return env.get_template("reel.html").render(guion=reel_guion.para_plantilla(), gancho=ctx_gancho, **ctx)
 
 
-def construir(fecha: date) -> tuple[Path, dict]:
-    """Escribe la composición de HyperFrames con todo lo que necesita dentro de su carpeta."""
-    ctx = contexto(fecha)
-    verificar(ctx)
-    d = dir_reel(fecha)
-    if d.exists():
-        shutil.rmtree(d)
+def _copiar_recursos(d: Path) -> None:
+    """CSS, fuentes, sprites y GSAP dentro de la carpeta de una composición de HyperFrames."""
     (d / "templates").mkdir(parents=True)
     for css in ("carrusel.css", "reel.css"):
         shutil.copy2(TEMPLATES / css, d / "templates" / css)
@@ -87,6 +82,16 @@ def construir(fecha: date) -> tuple[Path, dict]:
         raise ReelError("Falta node_modules/gsap. Ejecuta antes: npm install")
     (d / "assets" / "vendor").mkdir(parents=True)
     shutil.copy2(gsap, d / "assets" / "vendor" / "gsap.min.js")
+
+
+def construir(fecha: date) -> tuple[Path, dict]:
+    """Escribe la composición de HyperFrames con todo lo que necesita dentro de su carpeta."""
+    ctx = contexto(fecha)
+    verificar(ctx)
+    d = dir_reel(fecha)
+    if d.exists():
+        shutil.rmtree(d)
+    _copiar_recursos(d)
     texto = reel_ganchos.gancho(fecha, ctx)
     log.info("Gancho del día: %s", reel_ganchos.plano(texto))
     (d / "index.html").write_text(html_reel(ctx, reel_ganchos.a_html(texto)), encoding="utf-8")
@@ -223,84 +228,122 @@ def validar_mp4(ruta: Path, segundos: float) -> list[str]:
 # --------------------------------------------------------------------------- #
 # 6 · Fidelidad
 # --------------------------------------------------------------------------- #
+ALTO_CARRUSEL = 3 * 1350  # las tres fotos, una debajo de otra
+
+
+def _instantaneas(d: Path, instantes: list[float], destino: Path, prefijo: str) -> dict[float, Image.Image]:
+    """PNG sin pérdidas de la composición de la carpeta d en esos instantes (hyperframes snapshot)."""
+    carpeta = d / ".hyperframes" / "artifacts" / "snapshots"
+    shutil.rmtree(carpeta, ignore_errors=True)
+    hyperframes("snapshot", "--at", ",".join(f"{t:g}" for t in instantes), cwd=d)
+    hallados = {}  # HyperFrames guarda frame-NN-at-<t>s.png en una carpeta por ejecución
+    for p in carpeta.rglob("frame-*-at-*s.png"):
+        m = re.search(r"-at-([\d.]+)s\.png$", p.name)
+        if m:
+            hallados[round(float(m.group(1)), 3)] = p
+    out = {}
+    for t in instantes:
+        p = hallados.get(round(t, 3))
+        if not p:
+            raise ReelError(f"snapshot no generó el instante {t} s (hay {sorted(hallados)})")
+        copia = destino / f"{prefijo}_{t:g}s.png"
+        shutil.copy2(p, copia)
+        out[t] = Image.open(copia).convert("RGB")
+    return out
+
+
+def construir_referencia(d: Path, ctx: dict) -> Path:
+    """El carrusel del día como composición estática de HyperFrames (1080 × 4050).
+
+    La referencia de la fidelidad se pinta con el MISMO navegador y las MISMAS opciones que el
+    reel. Si se pinta con Playwright, el suavizado del texto puede cambiar según la versión de
+    Chrome (en GitHub Actions, con Chrome 158, los bocadillos daban miles de píxeles distintos).
+    """
+    ref = d / "_ref"
+    shutil.rmtree(ref, ignore_errors=True)
+    _copiar_recursos(ref)
+    env = Environment(loader=FileSystemLoader(TEMPLATES), undefined=StrictUndefined, autoescape=True)
+    html = env.get_template("carrusel.html").render(base="", **ctx)
+    if html.count("<body>") != 1 or html.count("</body>") != 1:
+        raise ReelError("carrusel.html no tiene un único <body>: no se puede montar la referencia")
+    html = html.replace('<base href="">', "")
+    html = html.replace("<body>", f'<body><div id="main" data-composition-id="main" data-start="0" '
+                                  f'data-duration="1" data-width="1080" data-height="{ALTO_CARRUSEL}">')
+    html = html.replace("</body>", '</div><script src="assets/vendor/gsap.min.js"></script>'
+                                   "<script>document.fonts.ready.then(() => { window.__timelines = "
+                                   "{ main: gsap.timeline({ paused: true }).set({}, {}, 1) }; });</script></body>")
+    (ref / "index.html").write_text(html, encoding="utf-8")
+    return ref
+
+
 def fidelidad(fecha: date, d: Path, ctx: dict) -> list[str]:
-    """Compara cada componente del reel (instantánea PNG de HyperFrames, sin pérdidas) con el
-    mismo componente del carrusel renderizado por Playwright. Devuelve los que difieren."""
+    """Compara cada componente del reel con el mismo componente del carrusel, los dos pintados
+    por HyperFrames (instantáneas PNG, sin pérdidas). Devuelve los que difieren."""
     from playwright.sync_api import sync_playwright
 
     controles = reel_guion.CONTROL_FIDELIDAD
     instantes = sorted({t for _, t, _, tipo in controles if tipo == "pixel"})
     snap_dir = d / "_fidelidad"
     shutil.rmtree(snap_dir, ignore_errors=True)
-    shutil.rmtree(d / ".hyperframes" / "artifacts" / "snapshots", ignore_errors=True)
-    hyperframes("snapshot", "--at", ",".join(f"{t:g}" for t in instantes), cwd=d)
-    # HyperFrames guarda frame-NN-at-<t>s.png en una carpeta por ejecución
-    hallados = {}
-    for p in (d / ".hyperframes" / "artifacts" / "snapshots").rglob("frame-*-at-*s.png"):
-        m = re.search(r"-at-([\d.]+)s\.png$", p.name)
-        if m:
-            hallados[round(float(m.group(1)), 3)] = p
     snap_dir.mkdir()
-    por_t = {}
-    for t in instantes:
-        p = hallados.get(round(t, 3))
-        if not p:
-            raise ReelError(f"snapshot no generó el instante {t} s (hay {sorted(hallados)})")
-        destino = snap_dir / f"reel_{t:g}s.png"
-        shutil.copy2(p, destino)
-        por_t[t] = Image.open(destino).convert("RGB")
-        if por_t[t].size != (ANCHO, ALTO):
-            raise ReelError(f"La instantánea de {t} s mide {por_t[t].size}")
+    por_t = _instantaneas(d, instantes, snap_dir, "reel")
+    for t, im in por_t.items():
+        if im.size != (ANCHO, ALTO):
+            raise ReelError(f"La instantánea del reel en {t} s mide {im.size}")
+    ref_dir = construir_referencia(d, ctx)
+    carrusel = _instantaneas(ref_dir, [0.5], snap_dir, "carrusel")[0.5]
+    if carrusel.size != (ANCHO, ALTO_CARRUSEL):
+        raise ReelError(f"La instantánea del carrusel mide {carrusel.size}")
 
-    tmp = OUT_DIR / f"_fid_{fecha.isoformat()}.html"
-    tmp.write_text(html_carrusel(ctx), encoding="utf-8")
+    slide = {"fichas": ".resumen", "tira": ".resumen",
+             "lavadora": ".escena-lavadora", "lavavajillas": ".escena-lavavajillas"}
     fallos = []
-    try:
-        with sync_playwright() as pw:
-            nav = pw.chromium.launch()
-            # Carrusel: cada componente tal y como sale en las fotos (PNG, sin JPEG)
-            pag = nav.new_page(viewport={"width": 1080, "height": 1350}, device_scale_factor=1)
-            pag.goto(tmp.as_uri(), wait_until="load")
-            pag.evaluate("document.fonts.ready")
-            slide = {"fichas": ".resumen", "tira": ".resumen",
-                     "lavadora": ".escena-lavadora", "lavavajillas": ".escena-lavavajillas"}
-            # Reel: posición de cada componente en el instante de control
-            reel = nav.new_page(viewport={"width": ANCHO, "height": ALTO}, device_scale_factor=1)
-            reel.goto((d / "index.html").as_uri(), wait_until="load")
-            # La línea de tiempo se registra tras cargar las fuentes. Nunca devolver el objeto
-            # de GSAP a Python (es enorme y cíclico): de ahí el «, true» / «, null».
-            reel.wait_for_function("!!(window.__timelines && window.__timelines.main)", timeout=30000)
-            for esc, t, sel, tipo in controles:
-                nombre = f"{esc} {sel}"
-                reel.evaluate(f"window.__timelines.main.seek({t}, false), null")  # false: que salten los onUpdate
-                if tipo == "texto":
-                    # Letra más grande en el reel: se exige el mismo contenido, no los mismos píxeles
-                    limpio = "(e) => e.innerText.replace(/\\s+/g, ' ').trim()"
-                    a_ = pag.locator(f"{slide[esc]} {sel}").first.evaluate(limpio)
-                    b_ = reel.locator(f"#esc-{esc} {sel}").first.evaluate(limpio)
-                    if a_ != b_:
-                        fallos.append(f"{nombre}: carrusel «{a_}» ≠ reel «{b_}»")
-                    log.info("Fidelidad %-32s %s", nombre, "mismo texto" if a_ == b_ else "TEXTO DISTINTO")
-                    continue
-                ref = Image.open(io.BytesIO(pag.locator(f"{slide[esc]} {sel}").first.screenshot(type="png"))).convert("RGB")
-                caja = reel.locator(f"#esc-{esc} {sel}").first.bounding_box()
-                x, y = round(caja["x"]), round(caja["y"])
-                recorte = por_t[t].crop((x, y, x + ref.width, y + ref.height))
-                r, g, b = ImageChops.difference(ref, recorte).split()
-                dif = ImageChops.lighter(ImageChops.lighter(r, g), b)  # mayor diferencia por píxel
-                maxima = dif.getextrema()[1]
-                fuera = dif.point(lambda v: 255 if v > TOLERANCIA_PIXEL else 0)
-                bbox = fuera.getbbox()
-                if bbox:
-                    px = fuera.histogram()[255]
-                    fallos.append(f"{nombre}: {px} píxeles distintos (> {TOLERANCIA_PIXEL}) en {bbox}")
-                    ref.save(snap_dir / f"{esc}{sel.replace('.', '_')}_carrusel.png")
-                    recorte.save(snap_dir / f"{esc}{sel.replace('.', '_')}_reel.png")
-                estado = "DIFERENTE" if bbox else ("idéntico" if maxima == 0 else f"idéntico (máx. {maxima}/255)")
-                log.info("Fidelidad %-32s %s", nombre, estado)
-            nav.close()
-    finally:
-        tmp.unlink(missing_ok=True)
+    with sync_playwright() as pw:
+        nav = pw.chromium.launch()
+        # Solo para medir dónde está cada componente (la geometría no depende del suavizado)
+        pag = nav.new_page(viewport={"width": ANCHO, "height": ALTO_CARRUSEL}, device_scale_factor=1)
+        pag.goto((ref_dir / "index.html").as_uri(), wait_until="load")
+        pag.wait_for_function("!!(window.__timelines && window.__timelines.main)", timeout=30000)
+        reel = nav.new_page(viewport={"width": ANCHO, "height": ALTO}, device_scale_factor=1)
+        reel.goto((d / "index.html").as_uri(), wait_until="load")
+        # La línea de tiempo se registra tras cargar las fuentes. Nunca devolver el objeto
+        # de GSAP a Python (es enorme y cíclico): de ahí el «, null».
+        reel.wait_for_function("!!(window.__timelines && window.__timelines.main)", timeout=30000)
+        for esc, t, sel, tipo in controles:
+            nombre = f"{esc} {sel}"
+            reel.evaluate(f"window.__timelines.main.seek({t}, false), null")  # false: que salten los onUpdate
+            if tipo == "texto":
+                # Letra más grande en el reel: se exige el mismo contenido, no los mismos píxeles
+                limpio = "(e) => e.innerText.replace(/\\s+/g, ' ').trim()"
+                a_ = pag.locator(f"{slide[esc]} {sel}").first.evaluate(limpio)
+                b_ = reel.locator(f"#esc-{esc} {sel}").first.evaluate(limpio)
+                if a_ != b_:
+                    fallos.append(f"{nombre}: carrusel «{a_}» ≠ reel «{b_}»")
+                log.info("Fidelidad %-32s %s", nombre, "mismo texto" if a_ == b_ else "TEXTO DISTINTO")
+                continue
+            c1 = pag.locator(f"{slide[esc]} {sel}").first.bounding_box()
+            c2 = reel.locator(f"#esc-{esc} {sel}").first.bounding_box()
+            w, h = round(c1["width"]), round(c1["height"])
+            if (round(c2["width"]), round(c2["height"])) != (w, h):
+                fallos.append(f"{nombre}: mide {round(c2['width'])}×{round(c2['height'])} en el reel y {w}×{h} en el carrusel")
+                log.info("Fidelidad %-32s TAMAÑO DISTINTO", nombre)
+                continue
+            x1, y1, x2, y2 = round(c1["x"]), round(c1["y"]), round(c2["x"]), round(c2["y"])
+            ref = carrusel.crop((x1, y1, x1 + w, y1 + h))
+            recorte = por_t[t].crop((x2, y2, x2 + w, y2 + h))
+            r, g, b = ImageChops.difference(ref, recorte).split()
+            dif = ImageChops.lighter(ImageChops.lighter(r, g), b)  # mayor diferencia por píxel
+            maxima = dif.getextrema()[1]
+            fuera = dif.point(lambda v: 255 if v > TOLERANCIA_PIXEL else 0)
+            bbox = fuera.getbbox()
+            if bbox:
+                px = fuera.histogram()[255]
+                fallos.append(f"{nombre}: {px} píxeles distintos (> {TOLERANCIA_PIXEL}) en {bbox}")
+                ref.save(snap_dir / f"{esc}{sel.replace('.', '_')}_carrusel.png")
+                recorte.save(snap_dir / f"{esc}{sel.replace('.', '_')}_reel.png")
+            estado = "DIFERENTE" if bbox else ("idéntico" if maxima == 0 else f"idéntico (máx. {maxima}/255)")
+            log.info("Fidelidad %-32s %s", nombre, estado)
+        nav.close()
     return fallos
 
 

@@ -230,6 +230,13 @@ class Estado(Base):
 
 
 class Orquestacion(Base):
+    def setUp(self):
+        super().setUp()
+        import main
+        p = mock.patch.object(main, "sincronizar", lambda: None)  # nunca un git pull de verdad
+        p.start()
+        self.addCleanup(p.stop)
+
     def test_carrusel_hecho_solo_reintenta_el_reel(self):
         import main
         state.marcar(FECHA, "CARR", "p", 3)
@@ -273,6 +280,95 @@ class Orquestacion(Base):
                 mock.patch.object(main, "subir") as subir, self.assertRaises(publish.PublishError):
             main.fase_reel(FECHA, sin_publicar=False, prueba=False, forzar=False, push=True)
         subir.assert_called_once_with(["state"], f"Reel del {FECHA}")
+
+
+
+class Git(Base):
+    """main.py con git simulado: nunca toca el repo de verdad."""
+
+    def git_falso(self, fallos_push=0):
+        llamadas, estado = [], {"push": 0}
+
+        def _git(*args):
+            llamadas.append(args)
+            rc = 0
+            if args[0] == "diff":
+                rc = 1  # hay cambios que subir
+            if args[0] == "push":
+                estado["push"] += 1
+                rc = 1 if estado["push"] <= fallos_push else 0
+            return mock.Mock(returncode=rc, stderr="! [rejected] HEAD -> main (fetch first)" if rc else "", stdout="")
+        return _git, llamadas
+
+    def test_con_push_se_pone_al_dia_antes_de_leer_el_estado(self):
+        import main
+        _git, llamadas = self.git_falso()
+
+        def pull_que_trae_el_carrusel(*args):
+            r = _git(*args)
+            if args[0] == "pull":  # GitHub ya tenía el carrusel publicado por el primer intento
+                state.marcar(FECHA, "CARR", "p", 3)
+            return r
+        with mock.patch.object(main, "_git", pull_que_trae_el_carrusel), \
+                mock.patch.object(main, "fase_carrusel") as carr, mock.patch.object(main, "fase_reel", return_value=0):
+            main.ejecutar(FECHA, push=True)
+        self.assertEqual(llamadas[0][0], "pull")
+        carr.assert_not_called()  # no se repite el carrusel
+
+    def test_push_rechazado_se_rebasa_y_reintenta(self):
+        import main
+        _git, llamadas = self.git_falso(fallos_push=1)
+        with mock.patch.object(main, "_git", _git):
+            self.assertTrue(main.subir(["state"], "Reel"))
+        ordenes = [a[0] for a in llamadas]
+        self.assertEqual(ordenes.count("push"), 2)
+        self.assertIn("pull", ordenes[ordenes.index("push"):])
+
+    def test_push_rechazado_dos_veces_es_error(self):
+        import main
+        _git, _ = self.git_falso(fallos_push=2)
+        with mock.patch.object(main, "_git", _git), self.assertRaises(RuntimeError):
+            main.subir(["state"], "Reel")
+
+
+class FechaObjetivo(Base):
+    """Disparos retrasados por GitHub: de madrugada se remata el día de hoy, no se salta a D+1."""
+
+    MADRID_0035 = datetime(2026, 11, 10, 23, 35, tzinfo=timezone.utc)   # 00:35 del 11/11 en Madrid
+    MADRID_0335 = datetime(2026, 11, 10, 2, 35, tzinfo=timezone.utc)    # 03:35 del 10/11
+    MADRID_2035 = datetime(2026, 11, 10, 19, 35, tzinfo=timezone.utc)   # 20:35 del 10/11
+    MADRID_1300 = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)    # 13:00 del 10/11
+
+    def test_tarde_normal_es_d_mas_1(self):
+        import main
+        self.assertEqual(main.fecha_objetivo(self.MADRID_2035), date(2026, 11, 11))
+
+    def test_madrugada_sin_publicar_es_hoy(self):
+        import main
+        self.assertEqual(main.fecha_objetivo(self.MADRID_0335), date(2026, 11, 10))
+        self.assertEqual(main.fecha_objetivo(self.MADRID_0035), date(2026, 11, 11))
+
+    def test_madrugada_con_carrusel_pero_sin_reel_es_hoy(self):
+        import main
+        state.marcar(date(2026, 11, 10), "c1", None, 3)
+        self.assertEqual(main.fecha_objetivo(self.MADRID_0335), date(2026, 11, 10))
+        self.assertEqual(main.fecha_objetivo(self.MADRID_0335, con_reel=False), date(2026, 11, 11))
+
+    def test_madrugada_todo_publicado_es_d_mas_1(self):
+        import main
+        state.marcar(date(2026, 11, 10), "c1", None, 3)
+        state.marcar_reel(date(2026, 11, 10), media_id="r1")
+        self.assertEqual(main.fecha_objetivo(self.MADRID_0335), date(2026, 11, 11))
+
+    def test_pasado_el_mediodia_no_rescata(self):
+        import main
+        self.assertEqual(main.fecha_objetivo(self.MADRID_1300), date(2026, 11, 11))
+
+    def test_cambio_de_hora_25_horas(self):
+        import main
+        # 25/10/2026: 01:30 UTC = 02:30 Madrid (ya en invierno) → hoy si no está publicado
+        self.assertEqual(main.fecha_objetivo(datetime(2026, 10, 25, 1, 30, tzinfo=timezone.utc)),
+                         date(2026, 10, 25))
 
 
 if __name__ == "__main__":

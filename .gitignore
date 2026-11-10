@@ -30,3 +30,6 @@ out/_fid_*.html
 
 # Node (HyperFrames y GSAP)
 node_modules/
+
+# Skills locales de Claude Code (de terceros, no se publican)
+.claude/skills/
