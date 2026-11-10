@@ -22,3 +22,11 @@ venv/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Reel: MP4 y composiciones generadas (no se suben al repo)
+out/*.mp4
+out/_reel/
+out/_fid_*.html
+
+# Node (HyperFrames y GSAP)
+node_modules/

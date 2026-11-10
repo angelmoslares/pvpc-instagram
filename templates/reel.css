@@ -1,0 +1,64 @@
+/* Reel diario · Que la luz te acompañe
+   Lienzo 1080 × 1920. Solo posiciones y tamaños propios del reel: los componentes y su
+   aspecto vienen de carrusel.css.
+
+   Zonas (y en px):
+     0–224      solo fondo (título «Reels», cámara)
+     224–336    cabecera (o bocadillo del avatar en entrada y cierre)
+     384–1248   escenario
+     1280–1400  progreso, nota legal y handle (ancho 64–904: fuera de la columna de botones)
+     1400–1920  solo fondo (usuario, pie de foto, audio, botones) */
+
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+
+#main { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden; background: var(--fondo); }
+.esc { position: absolute; inset: 0; }
+
+/* Cabecera: el mismo componente, más abajo que en el carrusel */
+.esc .cab { top: 224px; }
+.esc .res-cuerpo { top: 384px; }
+
+/* Escenas de electrodomésticos: bocadillo arriba, suelo en y = 1248 */
+.esc .bocadillo { top: 384px; }
+.esc .escena { bottom: 672px; }
+.esc .suelo { bottom: 664px; }
+
+/* ---------- Entrada: avatar grande (×8) con bocadillo de bienvenida ---------- */
+.esc-entrada .bocadillo, .esc-cierre .bocadillo { top: 240px; }
+.esc-entrada .boc-texto { font-size: 56px; line-height: 56px; }   /* hasta 3 líneas sin tocar al avatar */
+.esc-cierre .boc-texto { font-size: 64px; line-height: 64px; }
+.esc-entrada .cola.izq, .esc-cierre .cola.izq { left: 420px; }
+.pj-caja { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }
+.esc-entrada .pj-caja { bottom: 672px; }
+
+/* ---------- Fichas: textos más grandes que en el carrusel (pie aparte) ---------- */
+.esc-fichas .cab-kicker, .esc-tira .cab-kicker { font-size: 40px; line-height: 48px; }
+.esc-fichas .cab-fecha, .esc-tira .cab-fecha { font-size: 48px; line-height: 56px; }
+.esc-fichas .cab-pag, .esc-tira .cab-pag { font-size: 24px; line-height: 32px; }
+.esc-fichas .res-cuerpo { top: 352px; height: 760px; }   /* la ficha cara acaba por encima de la columna de botones */
+.esc-fichas .ficha-label { font-size: 32px; line-height: 40px; }
+.esc-fichas .ficha-cifra { font-size: 144px; line-height: 120px; }
+.esc-fichas .ficha-unidad { font-size: 40px; line-height: 40px; }
+.esc-fichas .ficha-rango { font-size: 48px; line-height: 48px; }
+
+/* ---------- Tira: barras arriba; debajo el avatar y lo que dice ---------- */
+.esc-tira .tira { top: 392px; }
+.esc-tira .pj-tira { position: absolute; left: var(--m); bottom: 672px; }
+.esc-tira .bocadillo { top: 768px; left: 450px; }
+.esc-tira .cola.izq { left: 24px; }
+
+/* ---------- Cierre: llamada a compartir ---------- */
+.esc-cierre .pj-caja { bottom: 968px; }
+.acciones { position: absolute; left: 0; right: 0; top: 984px; display: flex; justify-content: center; align-items: flex-end; gap: 64px; }
+.accion { display: grid; justify-items: center; gap: 8px; font: 24px/32px var(--label); letter-spacing: 1px; color: var(--texto); }
+.icono rect { fill: currentColor; }
+.icono.gusta { color: var(--magenta); } .icono.guarda { color: var(--ambar); } .icono.envia { color: var(--cian); }
+.esc-cierre .fin { position: absolute; left: 0; right: 0; top: 1232px; text-align: center; }
+
+/* Pie del reel: nota legal y handle (sin «Desliza») */
+.pie-reel { position: absolute; left: var(--m); width: 840px; top: 1304px; display: grid; gap: 16px; }
+
+/* Barra de progreso: un segmento por foto del carrusel */
+.progreso { position: absolute; left: var(--m); width: 840px; top: 1280px; height: 8px; display: grid; gap: 8px; }
+.seg { position: relative; background: var(--panel-alto); }
+.seg i { position: absolute; inset: 0; display: block; background: var(--cian); transform-origin: 0 50%; }

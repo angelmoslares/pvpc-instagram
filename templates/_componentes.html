@@ -1,0 +1,120 @@
+{#- _componentes.html — Piezas visuales compartidas por el carrusel y el reel.
+    Se importan con contexto:  {% import "_componentes.html" as c with context %}
+    Necesitan del contexto: fecha y sprites (los da src.render.contexto).
+    Cualquier cambio aquí cambia el carrusel y el reel a la vez: comprueba los JPEG. -#}
+
+{%- macro sprite(nombre, carpeta, escala, clase="") -%}
+  {%- set s = sprites[nombre] -%}
+  <img class="{{ clase }}" src="assets/{{ carpeta }}/{{ nombre }}.png" alt=""
+       width="{{ s.w * escala }}" height="{{ s.h * escala }}" style="--px: {{ escala }}px">
+{%- endmacro -%}
+
+{%- macro cabecera(kicker, pag) -%}
+  <header class="cab">
+    <div>
+      <div class="cab-kicker">{{ kicker }}</div>
+      <div class="cab-fecha">{{ fecha }}</div>
+    </div>
+    <div class="cab-pag">{{ pag }}/3</div>
+  </header>
+{%- endmacro -%}
+
+{%- macro flecha() -%}
+  <span class="desliza">Desliza
+    <svg width="48" height="40" viewBox="0 0 48 40" aria-hidden="true">
+      <rect x="0" y="16" width="24" height="8"/><rect x="24" y="0" width="8" height="40"/>
+      <rect x="32" y="8" width="8" height="24"/><rect x="40" y="16" width="8" height="8"/>
+    </svg>
+  </span>
+{%- endmacro -%}
+
+{%- macro nota_legal() -%}
+  Término de energía PVPC 2.0TD · <span class="u">€/kWh</span> sin impuestos · Fuente: REE (ESIOS)
+{%- endmacro -%}
+
+{%- macro fichas(min, media, max) -%}
+    <div class="fichas">
+      {% for clase, label, d in [("barato", "Más barata", min), ("media", "Media del día", media), ("caro", "Más cara", max)] %}
+      <div class="ficha {{ clase }}">
+        <div class="ficha-label">{{ label }}</div>
+        <div class="ficha-cifra">{{ d.cifra }}</div>
+        <div class="ficha-info">
+          <div class="ficha-unidad">€/kWh</div>
+          <div class="ficha-rango">{{ d.rango }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+{%- endmacro -%}
+
+{%- macro tira(barras, n_horas, media_alto) -%}
+  <div class="tira">
+    <div class="tira-ley">
+      <div class="tira-media"><i></i>media</div>
+      <div class="chips"><span class="chip barato">Barato</span><span class="chip medio">Medio</span><span class="chip caro">Caro</span></div>
+    </div>
+    <div class="plot" style="--n: {{ n_horas }}">
+      {% for b in barras %}
+      <div class="col">
+        <div class="pista"></div>
+        <div class="barra {{ b.tramo }}" style="height: {{ b.alto }}px"></div>
+        {% if b.marca %}<div class="marca {{ b.marca }}" style="bottom: {{ b.alto + 8 }}px"></div>{% endif %}
+      </div>
+      {% endfor %}
+      <div class="linea-media" style="bottom: {{ media_alto }}px"></div>
+    </div>
+    <div class="horas" style="--n: {{ n_horas }}">
+      {% for b in barras %}<span class="{{ 'fuerte' if b.fuerte }}">{{ b.etiqueta }}</span>{% endfor %}
+    </div>
+  </div>
+{%- endmacro -%}
+
+{%- macro bocadillo(e, cola) -%}
+  <div class="bocadillo">
+    <p class="boc-texto">Poner {{ e.nombre }} en la hora barata te saldrá por <b class="barato">{{ e.mejor_coste }}&nbsp;€</b>
+      y en la cara, por <b class="caro">{{ e.peor_coste }}&nbsp;€</b>.</p>
+    <div class="boc-filas">
+      <div class="boc-fila barato"><span class="chip barato">Barato</span><span>{{ e.mejor_rango }}</span><span class="coste">{{ e.mejor_coste }}&nbsp;€</span></div>
+      <div class="boc-fila caro"><span class="chip caro">Caro</span><span>{{ e.peor_rango }}</span><span class="coste">{{ e.peor_coste }}&nbsp;€</span></div>
+    </div>
+    <svg class="cola {{ cola }}" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <polygon class="cola-borde" points="0,0 64,0 64,16 48,16 48,32 32,32 32,48 16,48 16,64 0,64"/>
+      <polygon class="cola-relleno" points="4,0 60,0 60,12 44,12 44,28 28,28 28,44 12,44 12,60 4,60"/>
+    </svg>
+  </div>
+{%- endmacro -%}
+
+{#- Bocadillo de texto libre (solo reel): mismo aspecto y misma cola que el de las escenas.
+    Uso:  {% call c.dice("izq") %}Texto{% endcall %} -#}
+{%- macro dice(cola) -%}
+  <div class="bocadillo dice">
+    <p class="boc-texto">{{ caller() }}</p>
+    <svg class="cola {{ cola }}" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <polygon class="cola-borde" points="0,0 64,0 64,16 48,16 48,32 32,32 32,48 16,48 16,64 0,64"/>
+      <polygon class="cola-relleno" points="4,0 60,0 60,12 44,12 44,28 28,28 28,44 12,44 12,60 4,60"/>
+    </svg>
+  </div>
+{%- endmacro -%}
+
+{#- Icono pixel art a partir de filas de texto ("X" = un píxel de px × px). Solo reel. -#}
+{%- macro icono(filas, clase="", px=8) -%}
+  <svg class="icono {{ clase }}" width="{{ filas[0]|length * px }}" height="{{ filas|length * px }}" viewBox="0 0 {{ filas[0]|length }} {{ filas|length }}" shape-rendering="crispEdges" aria-hidden="true">
+    {%- for fila in filas %}{% set y = loop.index0 %}{% for ch in fila %}{% if ch == "X" %}<rect x="{{ loop.index0 }}" y="{{ y }}" width="1" height="1"/>{% endif %}{% endfor %}{% endfor -%}
+  </svg>
+{%- endmacro -%}
+
+{%- macro escena(objeto, pose, cola, escala) -%}
+  <div class="escena">
+    {% if cola == "der" %}
+      {{ sprite(objeto, "objetos", escala) }}
+      {{ sprite(pose, "personaje", escala, "pj") }}
+    {% else %}
+      {{ sprite(pose, "personaje", escala, "pj") }}
+      {{ sprite(objeto, "objetos", escala) }}
+    {% endif %}
+  </div>
+{%- endmacro -%}
+
+{%- macro nota_electro(e) -%}
+  {{ e.titulo }}: {{ e.kwh }} <span class="u">kWh</span> {{ e.nota }}
+{%- endmacro -%}

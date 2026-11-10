@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="templates/carrusel.css">
+<link rel="stylesheet" href="templates/reel.css">
+<title>Reel {{ fecha }}</title>
+</head>
+<body>
+{%- import "_componentes.html" as c with context -%}
+{%- set E = guion.escenas -%}
+{%- set T = guion.textos -%}
+
+<div id="main" data-composition-id="main" data-start="0" data-duration="{{ guion.duracion }}"
+     data-width="1080" data-height="1920" data-fps="{{ guion.fps }}">
+
+  <!-- ===== Entrada (gancho): avatar grande con el dato del día (src/reel_ganchos.py), sin fecha ===== -->
+  <section id="esc-entrada" class="esc esc-entrada clip" data-start="{{ E.entrada.inicio }}" data-duration="{{ E.entrada.duracion }}">
+    {% call c.dice("izq") %}{{ gancho }}{% endcall %}
+    <div class="suelo"></div>
+    <div class="pj-caja">{{ c.sprite("saluda", "personaje", 8, "pj") }}</div>
+  </section>
+
+  <!-- ===== Foto 1, primer tiempo: fichas (letra más grande que en el carrusel) ===== -->
+  <section id="esc-fichas" class="esc esc-fichas clip" data-start="{{ E.fichas.inicio }}" data-duration="{{ E.fichas.duracion }}">
+    {{ c.cabecera("Precio de la luz", 1) }}
+    <div class="res-cuerpo">
+      {{ c.sprite("senala", "personaje", 4, "pj") }}
+      {{ c.fichas(min, media, max) }}
+    </div>
+    <div class="pie-reel"><div class="pie-nota">{{ c.nota_legal() }}</div><span class="handle">{{ handle }}</span></div>
+  </section>
+
+  <!-- ===== Foto 1, segundo tiempo: barras + lo que dice el avatar ===== -->
+  <section id="esc-tira" class="esc esc-tira clip" data-start="{{ E.tira.inicio }}" data-duration="{{ E.tira.duracion }}">
+    {{ c.cabecera("Precio de la luz", 1) }}
+    {{ c.tira(barras, n_horas, media_alto) }}
+    {% call c.dice("izq") %}{{ T.tira_1 }}<b class="caro">{{ T.tira_color }}</b>{{ T.tira_2 }}{% endcall %}
+    <div class="suelo"></div>
+    {{ c.sprite("senala", "personaje", escala_resumen, "pj pj-tira") }}
+    <div class="pie-reel"><div class="pie-nota">{{ c.nota_legal() }}</div><span class="handle">{{ handle }}</span></div>
+  </section>
+
+  <!-- ===== Fotos 2 y 3: lavadora y lavavajillas (idénticas al carrusel) ===== -->
+  {% for clave, pose, objeto, cola, pag in [("lavadora", "guino", "lavadora", "der", 2), ("lavavajillas", "atencion", "lavavajillas", "izq", 3)] %}
+  {% set e = escenas[clave] %}
+  <section id="esc-{{ clave }}" class="esc clip" data-start="{{ E[clave].inicio }}" data-duration="{{ E[clave].duracion }}">
+    {{ c.cabecera("¿Cuándo pongo " ~ e.nombre ~ "?", pag) }}
+    {{ c.bocadillo(e, cola) }}
+    <div class="suelo"></div>
+    {{ c.escena(objeto, pose, cola, escala_escena) }}
+    <div class="pie-reel"><div class="pie-nota">{{ c.nota_electro(e) }}<br>{{ c.nota_legal() }}</div><span class="handle">{{ handle }}</span></div>
+  </section>
+  {% endfor %}
+
+  <!-- ===== Cierre: llamada a compartir ===== -->
+  <section id="esc-cierre" class="esc esc-cierre clip" data-start="{{ E.cierre.inicio }}" data-duration="{{ E.cierre.duracion }}">
+    {% call c.dice("izq") %}{{ T.cierre }}{% endcall %}
+    <div class="pj-caja">{{ c.sprite("saluda", "personaje", 5, "pj") }}</div>
+    <div class="acciones">
+      <div class="accion">{{ c.icono(["..XXX..XXX..", ".XXXXXXXXXX.", "XXXXXXXXXXXX", "XXXXXXXXXXXX", "XXXXXXXXXXXX", ".XXXXXXXXXX.", "..XXXXXXXX..", "...XXXXXX...", "....XXXX....", ".....XX....."], "gusta", 16) }}<span>{{ T.acciones[0] }}</span></div>
+      <div class="accion">{{ c.icono(["..XXXXXXXX..", "..XXXXXXXX..", "..XXXXXXXX..", "..XXXXXXXX..", "..XXXXXXXX..", "..XXXXXXXX..", "..XXXXXXXX..", "..XXX..XXX..", "..XX....XX..", "..X......X.."], "guarda", 16) }}<span>{{ T.acciones[1] }}</span></div>
+      <div class="accion">{{ c.icono(["..........XX", "........XXXX", ".....XXXXXX.", "..XXXXXXXXX.", "XXXXXXXXXX..", "..XXXXXXXX..", "....XXXXX...", "....XXXXX...", "....XXXX....", "....XX......"], "envia", 16) }}<span>{{ T.acciones[2] }}</span></div>
+    </div>
+    <span class="fin">Que la luz te acompañe</span>
+  </section>
+
+  <!-- ===== Progreso: un segmento por foto del carrusel, ancho proporcional a su duración ===== -->
+  <div id="progreso" class="progreso clip" data-start="0" data-duration="{{ guion.duracion }}"
+       style="grid-template-columns: {% for ini, fin in guion.progreso %}{{ fin - ini }}fr {% endfor %}">
+    {% for ini, fin in guion.progreso %}<div class="seg"><i id="seg-{{ loop.index }}"></i></div>{% endfor %}
+  </div>
+</div>
+
+<script src="assets/vendor/gsap.min.js"></script>
+<script>
+// La línea de tiempo se monta cuando las fuentes pixel ya están cargadas: el efecto de
+// escritura necesita saber cuántas líneas ocupa cada bocadillo. HyperFrames espera al registro.
+document.fonts.ready.then(() => {
+  const E = {{ guion.escenas | tojson }};
+  const PROGRESO = {{ guion.progreso | tojson }};
+  const tl = gsap.timeline({ paused: true });
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const fmt = (v, d) => v.toFixed(d).replace(".", ",").replace(/^-0,(0+)$/, "0,$1");
+
+  // Personaje que bota 8 px cada medio segundo mientras la escena está quieta (acaba abajo)
+  const bota = (sel, desde, hasta) => {
+    const veces = 2 * Math.floor((hasta - desde) / 1.0) - 1;
+    if (veces > 0) tl.fromTo(sel, { y: 0 }, { y: -8, duration: 0.5, ease: "steps(1)", repeat: veces, yoyo: true }, desde);
+  };
+
+  // Escritura línea a línea con clip-path; al terminar se quita y el componente queda intacto
+  const escribe = (el, desde, porLinea) => {
+    const alto = parseFloat(getComputedStyle(el).lineHeight);
+    const lineas = Math.max(1, Math.round(el.offsetHeight / alto));
+    const p = { v: 0 };
+    tl.fromTo(p, { v: 0 }, {
+      v: lineas, duration: porLinea * lineas, ease: `steps(${32 * lineas})`, lazy: false,
+      onUpdate() {
+        if (p.v >= lineas) { el.style.clipPath = ""; return; }
+        const L = Math.floor(p.v), x = ((p.v - L) * 100).toFixed(2) + "%";
+        const y1 = L * alto + "px", y2 = (L + 1) * alto + "px";
+        el.style.clipPath = `polygon(0 0, 100% 0, 100% ${y1}, ${x} ${y1}, ${x} ${y2}, 0 ${y2})`;
+      },
+    }, desde);
+    return desde + porLinea * lineas;
+  };
+  const aparece = (sel, t) => tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "steps(2)", clearProps: "opacity" }, t);
+
+  // --- Entrada (gancho): el avatar ya está en el primer fotograma; el bocadillo se escribe rápido
+  aparece("#esc-entrada .bocadillo", E.entrada.inicio + 0.1);
+  escribe($("#esc-entrada .boc-texto"), E.entrada.inicio + 0.2, 0.4);
+  bota("#esc-entrada .pj", E.entrada.inicio + 0.5, E.entrada.fin);
+
+  // --- Fichas: entran una a una y la cifra cuenta hasta su valor
+  $$("#esc-fichas .ficha").forEach((f, i) => {
+    const t0 = E.fichas.inicio + 0.1 + i * 0.5;
+    tl.fromTo(f, { x: 64, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: "steps(4)", clearProps: "transform,opacity" }, t0);
+    const cifra = f.querySelector(".ficha-cifra");
+    const final = cifra.textContent;
+    const valor = parseFloat(final.replace(",", "."));
+    const dec = (final.split(",")[1] || "").length;
+    const p = { v: 0 };
+    tl.fromTo(p, { v: 0 }, {
+      v: valor, duration: 0.7, ease: "steps(10)", lazy: false,  // sin lazy: el valor ya está escrito al llamar a onUpdate
+      onUpdate() { cifra.textContent = p.v >= valor ? final : fmt(p.v, dec); },
+    }, t0 + 0.15);
+  });
+  bota("#esc-fichas .pj", E.fichas.inicio + 2.5, E.fichas.fin);
+
+  // --- Tira: las barras crecen de la primera a la última hora, luego la media, las marcas y la frase
+  aparece("#esc-tira .tira", E.tira.inicio);
+  const barras = $$("#esc-tira .barra");
+  barras.forEach((b, i) => {
+    tl.fromTo(b, { scaleY: 0 }, { scaleY: 1, transformOrigin: "50% 100%", duration: 0.32, ease: "steps(4)", clearProps: "transform" },
+      E.tira.inicio + 0.2 + i * (1.2 / barras.length));
+  });
+  const tBarras = E.tira.inicio + 0.2 + 1.2 + 0.32;
+  tl.fromTo("#esc-tira .linea-media", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.3, ease: "steps(12)", clearProps: "clipPath" }, tBarras);
+  tl.fromTo("#esc-tira .marca", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "steps(1)", repeat: 2, yoyo: true }, tBarras + 0.3);
+  tl.fromTo("#esc-tira .pj-tira", { x: -416 }, { x: 0, duration: 0.4, ease: "steps(8)" }, E.tira.inicio);
+  aparece("#esc-tira .bocadillo", E.tira.inicio + 0.6);
+  const tFrase = escribe($("#esc-tira .bocadillo .boc-texto"), E.tira.inicio + 0.7, 0.5);
+  bota("#esc-tira .pj-tira", tFrase + 0.3, E.tira.fin);
+
+  // --- Lavadora y lavavajillas: entra la escena, el bocadillo se escribe, luego las filas
+  ["lavadora", "lavavajillas"].forEach(k => {
+    const s = "#esc-" + k, t = E[k].inicio;
+    const derecha = k === "lavadora";  // en la lavadora el personaje está a la derecha
+    const objeto = $(s + " .escena img:not(.pj)"), pj = $(s + " .escena .pj");
+    tl.fromTo(objeto, { x: derecha ? -480 : 480 }, { x: 0, duration: 0.4, ease: "steps(6)", clearProps: "transform" }, t);
+    tl.fromTo(pj, { y: 64, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "steps(4)", clearProps: "transform,opacity" }, t + 0.2);
+    aparece(s + " .bocadillo", t + 0.4);
+    escribe($(s + " .boc-texto"), t + 0.6, 0.8);
+    $$(s + " .boc-fila").forEach((f, i) => aparece(f, t + 2.3 + i * 0.4));
+    bota(pj, t + 3.2, E[k].fin);
+  });
+
+  // --- Cierre: frase, iconos uno a uno y «Enviar» saltando (es la acción que buscamos)
+  const tc = E.cierre.inicio;
+  tl.fromTo("#esc-cierre .pj", { y: 64, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "steps(4)", clearProps: "transform,opacity" }, tc);
+  aparece("#esc-cierre .bocadillo", tc + 0.2);
+  escribe($("#esc-cierre .boc-texto"), tc + 0.3, 0.4);
+  $$("#esc-cierre .accion").forEach((a, i) => {
+    tl.fromTo(a, { y: 32, opacity: 0 }, { y: 0, opacity: 1, duration: 0.2, ease: "steps(4)" }, tc + 1.1 + i * 0.25);
+  });
+  tl.fromTo("#esc-cierre .accion:last-child", { y: 0 }, { y: -24, duration: 0.25, ease: "steps(3)", repeat: 5, yoyo: true }, tc + 1.9);
+  aparece("#esc-cierre .fin", tc + 1.1);
+
+  // --- Progreso: se llena a saltos de 0,25 s
+  PROGRESO.forEach(([a, b], i) => {
+    tl.fromTo("#seg-" + (i + 1), { scaleX: 0 }, { scaleX: 1, duration: b - a, ease: `steps(${Math.round((b - a) * 4)})` }, a);
+  });
+
+  tl.set({}, {}, E.cierre.fin);  // la línea de tiempo dura lo mismo que el reel
+  window.__timelines = window.__timelines || {};
+  window.__timelines["main"] = tl;
+});
+</script>
+</body>
+</html>

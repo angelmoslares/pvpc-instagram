@@ -1,0 +1,12 @@
+{
+  "name": "pvpc-instagram-reel",
+  "private": true,
+  "description": "Herramientas de Node para el reel diario: HyperFrames (render local) y GSAP (animación). Versiones fijas.",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "gsap": "3.14.2",
+    "hyperframes": "0.9.29"
+  }
+}
