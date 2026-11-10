@@ -44,6 +44,10 @@ from src.render import OUT_DIR, ROOT, TEMPLATES, contexto, html_carrusel, verifi
 
 ANCHO, ALTO = 1080, 1920
 MAX_BYTES = 300 * 1024 * 1024
+# Fidelidad: el Chromium de HyperFrames y el de Playwright no pintan exactamente los mismos
+# colores (medido: hasta 5 niveles en los bocadillos y 28 en unos pocos píxeles de la tira).
+# Un cambio real (otra cifra, otro color de barra, un desplazamiento) da diferencias de >100.
+TOLERANCIA_PIXEL = 48  # diferencia máxima por canal (0-255) que se considera «el mismo píxel»
 log = logging.getLogger("render_reel")
 
 
@@ -273,14 +277,18 @@ def fidelidad(fecha: date, d: Path, ctx: dict) -> list[str]:
                 caja = reel.locator(f"#esc-{esc} {sel}").first.bounding_box()
                 x, y = round(caja["x"]), round(caja["y"])
                 recorte = por_t[t].crop((x, y, x + ref.width, y + ref.height))
-                diff = ImageChops.difference(ref, recorte)
-                bbox = diff.getbbox()
+                r, g, b = ImageChops.difference(ref, recorte).split()
+                dif = ImageChops.lighter(ImageChops.lighter(r, g), b)  # mayor diferencia por píxel
+                maxima = dif.getextrema()[1]
+                fuera = dif.point(lambda v: 255 if v > TOLERANCIA_PIXEL else 0)
+                bbox = fuera.getbbox()
                 if bbox:
-                    px = sum(1 for p in diff.getdata() if max(p) > 0)
-                    fallos.append(f"{nombre}: {px} píxeles distintos en {bbox}")
+                    px = fuera.histogram()[255]
+                    fallos.append(f"{nombre}: {px} píxeles distintos (> {TOLERANCIA_PIXEL}) en {bbox}")
                     ref.save(snap_dir / f"{esc}{sel.replace('.', '_')}_carrusel.png")
                     recorte.save(snap_dir / f"{esc}{sel.replace('.', '_')}_reel.png")
-                log.info("Fidelidad %-32s %s", nombre, "DIFERENTE" if bbox else "idéntico")
+                estado = "DIFERENTE" if bbox else ("idéntico" if maxima == 0 else f"idéntico (máx. {maxima}/255)")
+                log.info("Fidelidad %-32s %s", nombre, estado)
             nav.close()
     finally:
         tmp.unlink(missing_ok=True)
