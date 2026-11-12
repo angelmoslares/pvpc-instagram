@@ -53,6 +53,16 @@
     "media_id": "18077952452467467",
     "permalink": "https://www.instagram.com/p/Dfp2urcF244/",
     "publicado_utc": "2026-11-12T19:55:09+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18081521465449463",
+      "creado_utc": "2026-11-12T19:55:50+00:00",
+      "subido": true,
+      "gancho": "De 0,131 a 0,405 €/kWh: así cambia la luz el viernes.",
+      "media_id": "17939915988401832",
+      "permalink": "https://www.instagram.com/reel/Dfp207XgHGr/",
+      "publicado_utc": "2026-11-12T19:56:24+00:00",
+      "segundos": 28.0
+    }
   }
 }
