@@ -69,6 +69,16 @@
     "media_id": "17871306939659727",
     "permalink": "https://www.instagram.com/p/DfsrDh7DyNr/",
     "publicado_utc": "2026-11-13T22:10:55+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18081805169449463",
+      "creado_utc": "2026-11-13T22:11:30+00:00",
+      "subido": true,
+      "gancho": "¿A qué hora pones la lavadora el sábado? Hay 0,17 € de diferencia.",
+      "media_id": "18122581241073085",
+      "permalink": "https://www.instagram.com/reel/DfsrJcEiYDA/",
+      "publicado_utc": "2026-11-13T22:12:04+00:00",
+      "segundos": 28.0
+    }
   }
 }
