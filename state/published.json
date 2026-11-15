@@ -101,6 +101,16 @@
     "media_id": "18132125560851017",
     "permalink": "https://www.instagram.com/p/Dfx93rXF6Vm/",
     "publicado_utc": "2026-11-15T23:31:29+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18082422785449463",
+      "creado_utc": "2026-11-15T23:32:04+00:00",
+      "subido": true,
+      "gancho": "No pongas la lavadora de 20 a 21 h: pagas el triple.",
+      "media_id": "17893925043456424",
+      "permalink": "https://www.instagram.com/reel/Dfx99OWjAGD/",
+      "publicado_utc": "2026-11-15T23:32:35+00:00",
+      "segundos": 28.0
+    }
   }
 }
