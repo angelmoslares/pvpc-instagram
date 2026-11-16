@@ -117,6 +117,16 @@
     "media_id": "18237935845323137",
     "permalink": "https://www.instagram.com/p/Df0REhoDFJP/",
     "publicado_utc": "2026-11-16T20:57:51+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18082675613449463",
+      "creado_utc": "2026-11-16T20:58:32+00:00",
+      "subido": true,
+      "gancho": "La luz más barata del martes: de 4 a 5 h.",
+      "media_id": "17919324045508789",
+      "permalink": "https://www.instagram.com/reel/Df0RLs4CVKm/",
+      "publicado_utc": "2026-11-16T20:59:04+00:00",
+      "segundos": 28.0
+    }
   }
 }
