@@ -165,6 +165,16 @@
     "media_id": "18150899284601331",
     "permalink": "https://www.instagram.com/p/DgHF8UwjUYg/",
     "publicado_utc": "2026-11-24T04:26:03+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18084677009449463",
+      "creado_utc": "2026-11-24T04:26:44+00:00",
+      "subido": true,
+      "gancho": "No pongas la lavadora de 20 a 21 h: pagas un 71 % más.",
+      "media_id": "18105007001534033",
+      "permalink": "https://www.instagram.com/reel/DgHGCh4CkEN/",
+      "publicado_utc": "2026-11-24T04:27:19+00:00",
+      "segundos": 28.0
+    }
   }
 }
