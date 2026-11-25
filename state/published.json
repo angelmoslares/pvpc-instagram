@@ -181,6 +181,16 @@
     "media_id": "18107335778347199",
     "permalink": "https://www.instagram.com/p/DgJiBECmNxM/",
     "publicado_utc": "2026-11-25T03:09:54+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18084931328449463",
+      "creado_utc": "2026-11-25T03:10:29+00:00",
+      "subido": true,
+      "gancho": "La luz más barata del miércoles: de 14 a 15 h.",
+      "media_id": "18127713230008508",
+      "permalink": "https://www.instagram.com/reel/DgJiG93BxXc/",
+      "publicado_utc": "2026-11-25T03:11:00+00:00",
+      "segundos": 28.0
+    }
   }
 }
