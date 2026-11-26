@@ -197,6 +197,16 @@
     "media_id": "18417737377091933",
     "permalink": "https://www.instagram.com/p/DgMB0enjXvv/",
     "publicado_utc": "2026-11-26T02:26:17+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18085169288449463",
+      "creado_utc": "2026-11-26T02:26:45+00:00",
+      "subido": true,
+      "gancho": "¿Lavadora por 0,12 € o por 0,36 €? Depende de la hora.",
+      "media_id": "18140259988727822",
+      "permalink": "https://www.instagram.com/reel/DgMB5cQuZeh/",
+      "publicado_utc": "2026-11-26T02:27:17+00:00",
+      "segundos": 28.0
+    }
   }
 }
