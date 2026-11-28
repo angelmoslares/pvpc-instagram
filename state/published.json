@@ -229,6 +229,16 @@
     "media_id": "17918195784518107",
     "permalink": "https://www.instagram.com/p/DgRJetyG91_/",
     "publicado_utc": "2026-11-28T02:09:25+00:00",
-    "fotos": 3
+    "fotos": 3,
+    "reel": {
+      "contenedor": "18085685645449463",
+      "creado_utc": "2026-11-28T02:10:00+00:00",
+      "subido": true,
+      "gancho": "Tu lavavajillas: 0,16 € o 0,29 €. Tú eliges la hora.",
+      "media_id": "18485887558117766",
+      "permalink": "https://www.instagram.com/reel/DgRJkuPiAxU/",
+      "publicado_utc": "2026-11-28T02:10:38+00:00",
+      "segundos": 28.0
+    }
   }
 }
